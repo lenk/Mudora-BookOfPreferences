@@ -1,5 +1,5 @@
 
-# Mudora - G
+# Mudora - Book of Preferences
 <p align="center">
     <b>Simple library for preference storage</b><br>
     This library is dedicated for storing settings (preferences) in a JSON format for easy transportability. This library depends on GSON & org.json to accomplish these goals between loading, storing, serializing, and de-serializing!
