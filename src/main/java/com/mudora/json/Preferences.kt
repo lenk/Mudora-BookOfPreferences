@@ -12,6 +12,10 @@ class Preferences(private val node: File) {
     private var cache: JSONObject? = null
     private var memoryCache = false
 
+    companion object {
+        val DEFAULT: Preferences = Preferences(File(System.getProperty("user.home"), ".mudora"))
+    }
+
     init {
         if (!node.exists()) {
             node.mkdirs()
