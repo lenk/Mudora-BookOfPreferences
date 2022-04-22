@@ -1,10 +1,14 @@
 package com.mudora.json
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializer
+import com.mudora.json.adapter.ExtraDeserializer
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
+
 
 class Preferences(private val node: File) {
     private val root: File = File(node, "root.json")
@@ -218,8 +222,12 @@ class Preferences(private val node: File) {
     /**
      * parse [root] of [Preferences] to [Object] of type [T]
      */
-    inline fun <reified T> deserialize(): T {
-        return Gson().fromJson(get().toString(), T::class.java)
+    inline fun <reified T : Any> deserialize(): T {
+        println(T::class.java)
+        val gsonBuilder = GsonBuilder()
+        gsonBuilder.registerTypeAdapter(T::class.java, ExtraDeserializer(T::class))
+
+        return gsonBuilder.create().fromJson(get().toString(), T::class.java)
     }
 
     /**
