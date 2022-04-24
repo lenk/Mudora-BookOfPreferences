@@ -1,5 +1,6 @@
 package com.mudora.json
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.json.JSONArray
 import org.json.JSONException
@@ -220,7 +221,9 @@ class Preferences(private val node: File) {
      * parse [root] of [Preferences] to [Object] of type [T]
      */
     inline fun <reified T : Any> deserialize(): T {
-        return jacksonObjectMapper().readValue(get().toString(), T::class.java)
+        return jacksonObjectMapper().apply {
+            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        }.readValue(get().toString(), T::class.java)
     }
 
     /**
