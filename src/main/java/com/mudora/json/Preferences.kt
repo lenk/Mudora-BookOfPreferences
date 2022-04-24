@@ -1,9 +1,6 @@
 package com.mudora.json
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonDeserializer
-import com.mudora.json.adapter.ExtraDeserializer
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -223,17 +220,13 @@ class Preferences(private val node: File) {
      * parse [root] of [Preferences] to [Object] of type [T]
      */
     inline fun <reified T : Any> deserialize(): T {
-        println(T::class.java)
-        val gsonBuilder = GsonBuilder()
-        gsonBuilder.registerTypeAdapter(T::class.java, ExtraDeserializer(T::class))
-
-        return gsonBuilder.create().fromJson(get().toString(), T::class.java)
+        return jacksonObjectMapper().readValue(get().toString(), T::class.java)
     }
 
     /**
      * serialize [any] and export as [root] of [Preferences]
      */
     fun serialize(any: Any) {
-        set(JSONObject(Gson().toJson(any)))
+        set(JSONObject(jacksonObjectMapper().writeValueAsString(any)))
     }
 }
