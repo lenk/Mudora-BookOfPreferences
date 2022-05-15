@@ -16,7 +16,11 @@ open class FallbackTemplate {
     }
 
     @JsonAnySetter
-    operator fun set(name: String, value: Any) {
-        other[name] = value
+    operator fun set(name: String, value: Any?) {
+        if (value == null) {
+            other.remove(name)
+        } else {
+            other[name] = value
+        }
     }
 }
