@@ -11,13 +11,13 @@ import java.io.File
 
 class Preferences(private val node: File) {
     private val root: File = File(node, "root.json")
-    private val mapper = jacksonObjectMapper()
 
     private var cache: JSONObject? = null
     private var memoryCache = false
 
     companion object {
         val DEFAULT: Preferences = Preferences(File(System.getProperty("user.home"), ".mudora"))
+        val mapper = jacksonObjectMapper()
     }
 
     init {
@@ -227,7 +227,7 @@ class Preferences(private val node: File) {
      * parse [root] of [Preferences] to [Object] of type [T]
      */
     inline fun <reified T : Any> deserialize(): T {
-        return getMapper().apply {
+        return mapper.apply {
             configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         }.readValue(get().toString(), T::class.java)
     }
