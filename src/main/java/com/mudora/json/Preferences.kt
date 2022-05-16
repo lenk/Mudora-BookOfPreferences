@@ -1,6 +1,7 @@
 package com.mudora.json
 
 import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.json.JSONArray
 import org.json.JSONException
@@ -10,6 +11,7 @@ import java.io.File
 
 class Preferences(private val node: File) {
     private val root: File = File(node, "root.json")
+    private val mapper = jacksonObjectMapper()
 
     private var cache: JSONObject? = null
     private var memoryCache = false
@@ -65,6 +67,10 @@ class Preferences(private val node: File) {
         } catch (i: JSONException) { // if file isn't populated it'll throw exception
             JSONObject()
         }
+    }
+
+    fun getMapper(): ObjectMapper {
+        return mapper
     }
 
     /**
@@ -221,7 +227,7 @@ class Preferences(private val node: File) {
      * parse [root] of [Preferences] to [Object] of type [T]
      */
     inline fun <reified T : Any> deserialize(): T {
-        return jacksonObjectMapper().apply {
+        return getMapper().apply {
             configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         }.readValue(get().toString(), T::class.java)
     }
@@ -230,6 +236,6 @@ class Preferences(private val node: File) {
      * serialize [any] and export as [root] of [Preferences]
      */
     fun serialize(any: Any) {
-        set(JSONObject(jacksonObjectMapper().writeValueAsString(any)))
+        set(JSONObject(mapper.writeValueAsString(any)))
     }
 }
