@@ -32,11 +32,12 @@ class Preferences(private val node: File) {
         }
     }
 
-    fun isEmpty(): Boolean {
-        val br = BufferedReader(FileReader(root))
-        if (br.readLine() == null && root.length() == 0L) {
-            return true
-        }
+    private fun isEmpty(): Boolean {
+       BufferedReader(FileReader(root)).use {
+           if (it.readLine() == null && root.length() == 0L) {
+               return true
+           }
+       }
 
         return false
     }
