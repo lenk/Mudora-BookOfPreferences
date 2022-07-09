@@ -26,7 +26,7 @@ class Preferences(private val node: File) {
         }
 
         if (!root.exists()) {
-            root.createNewFile()
+            root.writeText("{}")
         }
     }
 
@@ -52,7 +52,9 @@ class Preferences(private val node: File) {
         return try {
             if (memoryCache) {
                 if (this.cache == null) {
-                    this.cache = JSONObject(root.readText())
+                    synchronized(root.canonicalPath) {
+                        this.cache = JSONObject(root.readText())
+                    }
                 }
 
                 val cached = this.cache
@@ -224,13 +226,33 @@ class Preferences(private val node: File) {
     }
 
     /**
+     * set provided [preferences] values into the current [root] of [Preferences]
+     */
+    @Synchronized
+    fun set(preferences: Preferences) {
+        set(preferences.get())
+    }
+
+    /**
      * parse [root] of [Preferences] to [Object] of type [T]
      */
     inline fun <reified T : Any> deserialize(): T {
-        return mapper.apply {
-            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        }.readValue(get().toString(), T::class.java)
+        return if (isMemoryCache()) {
+            mapper.apply {
+                configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            }.readValue(get().toString(), T::class.java)
+        } else {
+            synchronized(getRoot().canonicalPath) {
+                mapper.apply {
+                    configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                }.readValue(getRoot(), T::class.java)
+            }
+        }
     }
+
+    fun getRoot() = root
+
+    fun isMemoryCache() = memoryCache
 
     /**
      * serialize [any] and export as [root] of [Preferences]
