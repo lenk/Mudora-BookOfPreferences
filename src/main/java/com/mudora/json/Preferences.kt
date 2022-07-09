@@ -6,7 +6,9 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import java.io.BufferedReader
 import java.io.File
+import java.io.FileReader
 
 
 class Preferences(private val node: File) {
@@ -25,9 +27,18 @@ class Preferences(private val node: File) {
             node.mkdirs()
         }
 
-        if (!root.exists()) {
+        if (!root.exists() || isEmpty()) {
             root.writeText("{}")
         }
+    }
+
+    fun isEmpty(): Boolean {
+        val br = BufferedReader(FileReader(root))
+        if (br.readLine() == null && root.length() == 0L) {
+            return true
+        }
+
+        return false
     }
 
     fun node(name: String): Preferences {
