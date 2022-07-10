@@ -12,7 +12,7 @@ import java.io.FileReader
 
 
 class Preferences(private val node: File) {
-    private val root: File = File(node, "root.json")
+    val root: File = File(node, "root.json")
 
     private var cache: JSONObject? = null
     private var memoryCache = false
@@ -28,8 +28,10 @@ class Preferences(private val node: File) {
             node.mkdirs()
         }
 
-        if (!root.exists() || isEmpty()) {
-            root.writeText("{}")
+        synchronized(lock) {
+            if (!root.exists() || isEmpty()) {
+                root.writeText("{}")
+            }
         }
     }
 
@@ -255,15 +257,14 @@ class Preferences(private val node: File) {
                 configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             }.readValue(get().toString(), T::class.java)
         } else {
-            synchronized(lock) {
+            synchronized(root.canonicalPath.intern()) {
                 mapper.apply {
                     configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                }.readValue(getRoot(), T::class.java)
+                }.readValue(root, T::class.java)
             }
         }
     }
 
-    fun getRoot() = root
 
     fun isMemoryCache() = memoryCache
 
@@ -271,8 +272,8 @@ class Preferences(private val node: File) {
      * serialize [any] and export as [root] of [Preferences]
      */
     fun serialize(any: Any) {
-        synchronized(lock) {
-            mapper.writeValue(getRoot(), any)
+        synchronized(root.canonicalPath.intern()) {
+            mapper.writeValue(root, any)
         }
     }
 }
