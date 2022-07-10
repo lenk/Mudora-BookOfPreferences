@@ -16,6 +16,7 @@ class Preferences(private val node: File) {
 
     private var cache: JSONObject? = null
     private var memoryCache = false
+    val lock = Object()
 
     companion object {
         val DEFAULT: Preferences = Preferences(File(System.getProperty("user.home"), ".mudora"))
@@ -248,13 +249,13 @@ class Preferences(private val node: File) {
     /**
      * parse [root] of [Preferences] to [Object] of type [T]
      */
-    inline fun <reified T : Any> deserialize(): T {
+     inline fun <reified T : Any> deserialize(): T {
         return if (isMemoryCache()) {
             mapper.apply {
                 configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             }.readValue(get().toString(), T::class.java)
         } else {
-            synchronized(getRoot().canonicalPath) {
+            synchronized(lock) {
                 mapper.apply {
                     configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 }.readValue(getRoot(), T::class.java)
@@ -270,7 +271,7 @@ class Preferences(private val node: File) {
      * serialize [any] and export as [root] of [Preferences]
      */
     fun serialize(any: Any) {
-        synchronized(getRoot().canonicalPath) {
+        synchronized(lock) {
             mapper.writeValue(getRoot(), any)
         }
     }
