@@ -28,21 +28,9 @@ class Preferences(private val node: File) {
             node.mkdirs()
         }
 
-        synchronized(lock) {
-            if (!root.exists() || isEmpty()) {
-                root.writeText("{}")
-            }
+        if (!root.exists()) {
+            root.writeText("{}")
         }
-    }
-
-    private fun isEmpty(): Boolean {
-       BufferedReader(FileReader(root)).use {
-           if (it.readLine() == null && root.length() == 0L) {
-               return true
-           }
-       }
-
-        return false
     }
 
     fun node(name: String): Preferences {
