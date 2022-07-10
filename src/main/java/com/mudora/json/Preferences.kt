@@ -270,6 +270,8 @@ class Preferences(private val node: File) {
      * serialize [any] and export as [root] of [Preferences]
      */
     fun serialize(any: Any) {
-        set(JSONObject(mapper.writeValueAsString(any)))
+        synchronized(getRoot().canonicalPath) {
+            mapper.writeValue(getRoot(), any)
+        }
     }
 }
