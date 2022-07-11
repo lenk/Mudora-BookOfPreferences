@@ -18,6 +18,7 @@ class Preferences(private val node: File) {
     companion object {
         val DEFAULT: Preferences = Preferences(File(System.getProperty("user.home"), ".mudora"))
         val mapper = jacksonObjectMapper()
+        val locking = HashMap<String, Any>()
     }
 
     init {
@@ -31,8 +32,12 @@ class Preferences(private val node: File) {
     }
 
     private fun init() {
-        synchronized(root.canonicalPath.intern()) {
-            root.writeText("{}")
+        try {
+            synchronized(lock()) {
+                root.writeText("{}")
+            }
+        } finally {
+            unlock()
         }
     }
 
@@ -248,10 +253,14 @@ class Preferences(private val node: File) {
                 configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             }.readValue(get().toString(), T::class.java)
         } else {
-            synchronized(root.canonicalPath.intern()) {
-                mapper.apply {
-                    configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                }.readValue(root, T::class.java)
+            try {
+                synchronized(lock()) {
+                    mapper.apply {
+                        configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    }.readValue(root, T::class.java)
+                }
+            } finally {
+                unlock()
             }
         }
     }
@@ -263,8 +272,26 @@ class Preferences(private val node: File) {
      * serialize [any] and export as [root] of [Preferences]
      */
     fun serialize(any: Any) {
-        synchronized(root.canonicalPath.intern()) {
-            mapper.writeValue(root, any)
+        try {
+            synchronized(lock()) {
+                mapper.writeValue(root, any)
+            }
+        } finally {
+            unlock()
         }
+    }
+
+    fun lock(): Any {
+        var lock = locking[root.path]
+        if (lock == null) {
+            lock = Any()
+            locking[root.path] = lock
+        }
+
+        return lock
+    }
+
+    fun unlock() {
+        locking.remove(root.path)
     }
 }
