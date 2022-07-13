@@ -259,7 +259,7 @@ class Preferences(private val node: File) {
         return if (isMemoryCache()) {
             mapper.readValue(get().toString(), T::class.java)
         } else {
-            mapper.readValue(root, T::class.java)
+            mapper.readValue(root.readBytes(), T::class.java)
         }
     }
 
