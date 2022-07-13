@@ -1,5 +1,6 @@
 package com.mudora.json
 
+import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -17,7 +18,10 @@ class Preferences(private val node: File) {
 
     companion object {
         val DEFAULT: Preferences = Preferences(File(System.getProperty("user.home"), ".mudora"))
-        val mapper = jacksonObjectMapper()
+        val mapper = jacksonObjectMapper().apply {
+            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        }
+
         val locking = HashMap<String, Any>()
     }
 
@@ -207,8 +211,12 @@ class Preferences(private val node: File) {
      */
     @Synchronized
     fun set(json: JSONObject) = apply {
-        synchronized(root.canonicalPath.intern()) {
-            root.writeText(json.toString(3))
+        try {
+            synchronized(lock()) {
+                root.writeText(json.toString(3))
+            }
+        } finally {
+            unlock()
         }
     }
 
@@ -249,19 +257,9 @@ class Preferences(private val node: File) {
      */
      inline fun <reified T : Any> deserialize(): T {
         return if (isMemoryCache()) {
-            mapper.apply {
-                configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            }.readValue(get().toString(), T::class.java)
+            mapper.readValue(get().toString(), T::class.java)
         } else {
-            try {
-                synchronized(lock()) {
-                    mapper.apply {
-                        configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                    }.readValue(root, T::class.java)
-                }
-            } finally {
-                unlock()
-            }
+            mapper.readValue(root, T::class.java)
         }
     }
 
@@ -272,13 +270,7 @@ class Preferences(private val node: File) {
      * serialize [any] and export as [root] of [Preferences]
      */
     fun serialize(any: Any) {
-        try {
-            synchronized(lock()) {
-                mapper.writeValue(root, any)
-            }
-        } finally {
-            unlock()
-        }
+        mapper.writeValue(root, any)
     }
 
     fun lock(): Any {
