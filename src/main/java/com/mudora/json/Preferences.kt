@@ -1,28 +1,34 @@
 package com.mudora.json
 
-import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 
 class Preferences(private val node: File) {
     val root: File = File(node, "root.json")
 
-    private var cache: JSONObject? = null
-    private var memoryCache = false
-
     companion object {
         val DEFAULT: Preferences = Preferences(File(System.getProperty("user.home"), ".mudora"))
         val mapper = jacksonObjectMapper().apply {
             configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            configure(SerializationFeature.INDENT_OUTPUT, true)
+            configure(SerializationFeature.FLUSH_AFTER_WRITE_VALUE, true)
         }
 
-        val locking = HashMap<String, Any>()
+        val files = object: ArrayList<File>() {
+            override fun get(index: Int): File {
+                removeIf { System.currentTimeMillis() - it.lastModified() > TimeUnit.MINUTES.toMillis(15) }
+                return super.get(index)
+            }
+        }
+
     }
 
     init {
@@ -36,13 +42,7 @@ class Preferences(private val node: File) {
     }
 
     private fun init() {
-        try {
-            synchronized(lock()) {
-                root.writeText("{}")
-            }
-        } finally {
-            unlock()
-        }
+        mapper.writeValue(root, "{}")
     }
 
     fun node(name: String): Preferences {
@@ -65,21 +65,6 @@ class Preferences(private val node: File) {
     @Synchronized
     fun get(): JSONObject {
         return try {
-            if (memoryCache) {
-                if (this.cache == null) {
-                    synchronized(root.canonicalPath) {
-                        this.cache = JSONObject(root.readText())
-                    }
-                }
-
-                val cached = this.cache
-                if (cached != null) {
-                    return cached
-                }
-            } else {
-                cache = null
-            }
-
             JSONObject(root.readText())
         } catch (i: JSONException) { // if file isn't populated it'll throw exception
             JSONObject()
@@ -211,13 +196,7 @@ class Preferences(private val node: File) {
      */
     @Synchronized
     fun set(json: JSONObject) = apply {
-        try {
-            synchronized(lock()) {
-                root.writeText(json.toString(3))
-            }
-        } finally {
-            unlock()
-        }
+        mapper.writeValue(root, json.toString())
     }
 
     /**
@@ -256,34 +235,14 @@ class Preferences(private val node: File) {
      * parse [root] of [Preferences] to [Object] of type [T]
      */
      inline fun <reified T : Any> deserialize(): T {
-        return if (isMemoryCache()) {
-            mapper.readValue(get().toString(), T::class.java)
-        } else {
-            mapper.readValue(root.readBytes(), T::class.java)
-        }
+        return mapper.readValue(root.inputStream(), T::class.java)
     }
 
-
-    fun isMemoryCache() = memoryCache
 
     /**
      * serialize [any] and export as [root] of [Preferences]
      */
     fun serialize(any: Any) {
         mapper.writeValue(root, any)
-    }
-
-    fun lock(): Any {
-        var lock = locking[root.path]
-        if (lock == null) {
-            lock = Any()
-            locking[root.path] = lock
-        }
-
-        return lock
-    }
-
-    fun unlock() {
-        locking.remove(root.path)
     }
 }
