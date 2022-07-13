@@ -42,7 +42,7 @@ class Preferences(private val node: File) {
     }
 
     private fun init() {
-        mapper.writeValue(root, "{}")
+        root.writeText("{}")
     }
 
     fun node(name: String): Preferences {
