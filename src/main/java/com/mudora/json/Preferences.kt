@@ -19,7 +19,6 @@ class Preferences(private val node: File) {
         val mapper = jacksonObjectMapper().apply {
             configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             configure(SerializationFeature.INDENT_OUTPUT, true)
-            configure(SerializationFeature.FLUSH_AFTER_WRITE_VALUE, true)
         }
 
         val files = object: ArrayList<File>() {
@@ -235,14 +234,19 @@ class Preferences(private val node: File) {
      * parse [root] of [Preferences] to [Object] of type [T]
      */
      inline fun <reified T : Any> deserialize(): T {
-        return mapper.readValue(root.inputStream(), T::class.java)
+        synchronized(root.canonicalPath.intern()) {
+            return mapper.readValue(root.inputStream(), T::class.java)
+        }
     }
 
 
     /**
      * serialize [any] and export as [root] of [Preferences]
      */
+    @Synchronized
     fun serialize(any: Any) {
-        mapper.writeValue(root, any)
+        synchronized(root.canonicalPath.intern()) {
+            mapper.writeValue(root, any)
+        }
     }
 }
