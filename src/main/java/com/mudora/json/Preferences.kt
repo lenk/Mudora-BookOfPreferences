@@ -195,7 +195,9 @@ class Preferences(private val node: File) {
      */
     @Synchronized
     fun set(json: JSONObject) = apply {
-        mapper.writeValue(root, json.toString())
+        synchronized(root.canonicalPath.intern()) {
+            root.writeText(json.toString())
+        }
     }
 
     /**
